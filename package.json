@@ -1,0 +1,35 @@
+{
+  "name": "connectionreseter",
+  "version": "1.0.0",
+  "description": "reset fritzbox connection for devices ",
+  "main": "index.js",
+  "scripts": {
+    "init": "npm install",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fiwel00/connectionReseter.git"
+  },
+  "keywords": [
+    "connection",
+    "reseter",
+    "fritzbox"
+  ],
+  "type": "module",
+  "author": "Fiwel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Fiwel00/connectionReseter/issues"
+  },
+  "homepage": "https://github.com/Fiwel00/connectionReseter#readme",
+  "devDependencies": {
+    "axios": "^1.4.0",
+    "config": "^3.3.9",
+    "crypto-js": "^4.1.1",
+    "fast-xml-parser": "^4.2.2"
+  },
+  "dependencies": {
+    "pbkdf2-hmac": "^1.2.1"
+  }
+}
