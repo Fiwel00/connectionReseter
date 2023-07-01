@@ -2,12 +2,13 @@ import axios from 'axios';
 import crypto from 'crypto-js';
 import { XMLParser } from 'fast-xml-parser';
 import {resolve} from './challengeResolver.js';
-const FRITZ_BOX_URL = ""
+import config from 'config';
+const FRITZ_BOX_URL = "http://" + config.get('fritzbox.host');
 
 
 async function main() {
-  const username = '';
-  const password = '';
+  const username = config.get('fritzbox.authentication.user');
+  const password = config.get('fritzbox.authentication.password');
   const ain = ""
   const loginUrl = FRITZ_BOX_URL + '/login_sid.lua';
   const deviceName = 'placeholder';
