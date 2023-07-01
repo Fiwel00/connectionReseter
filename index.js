@@ -1,7 +1,7 @@
 import axios from 'axios';
 import crypto from 'crypto-js';
 import { XMLParser } from 'fast-xml-parser';
-import {resolve} from './challengeResolver.js';
+import {resolve} from './ReverseEngineer.js';
 import config from 'config';
 const FRITZ_BOX_URL = "http://" + config.get('fritzbox.host');
 
