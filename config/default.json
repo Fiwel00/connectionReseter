@@ -1,0 +1,13 @@
+{
+    "fritzbox": {
+        "host": "",
+        "port": "",
+        "authentication": {
+            "user": "",
+            "password": ""
+        }
+    },
+    "device": [
+        "placeholder"
+    ]
+}
