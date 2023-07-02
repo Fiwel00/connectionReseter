@@ -2,9 +2,11 @@ import axios from 'axios';
 import crypto from 'crypto-js';
 import { XMLParser } from 'fast-xml-parser';
 import {resolve} from './ReverseEngineer.js';
+import fritz from 'fritzbox.js';
+
 import config from 'config';
 const FRITZ_BOX_URL = "http://" + config.get('fritzbox.host');
-
+const parser = new XMLParser();
 
 async function main() {
   const username = config.get('fritzbox.authentication.user');
@@ -13,8 +15,20 @@ async function main() {
   const loginUrl = FRITZ_BOX_URL + '/login_sid.lua';
   const deviceName = 'placeholder';
 
+
+  const options = {
+    username: username,
+    password: password,
+    server: config.get('fritzbox.host'),
+    protocol: 'https' };
+
+  
+    const calls = await fritz.getCalls(options);
+    if (calls.error) return console.log('Error: ' + calls.error.message);
+    console.log('Got ' + calls.length + 'calls.');
+  
   // Step 1: Authenticate and retrieve session ID
-  const sid = await getSessionId(username, password, loginUrl);
+  // const sid = await getSessionId(username, password, loginUrl);
 
   
   // Step 2: Get list of connected devices and find the device with the specified name
@@ -30,25 +44,21 @@ async function getSessionId(username, password, loginUrl){
   let client = axios.create();
   const response = await client.get(loginUrl);
   const xmlData = response.data;
-  const parser = new XMLParser();
-  const root = parser.parse(xmlData, { ignoreAttributes: false, parseAttributeValue: true });
+  
+  const root = parser.parse(xmlData);
   const sidNode = root.SessionInfo.SID;
 
   if (sidNode == 0) {
     const challenge = root.SessionInfo.Challenge;
 
-
-
     resolve();
-
-
 
     const challengeResponse = crypto.MD5(`${challenge}-${password}`).toString();
     const challengeUrl = `${loginUrl}?username=${username}&response=${challengeResponse}`;
 
     const response = await client.get(challengeUrl);
     const xmlData = response.data;
-    const newRoot = parser.parse(xmlData, { ignoreAttributes: false, parseAttributeValue: true });
+    const newRoot = parser.parse(xmlData);
     const sid = newRoot.SessionInfo.SID;
     console.log(JSON.stringify(newRoot))
 
@@ -67,7 +77,7 @@ async function getDeviceByName(sid, deviceName) {
     headers: { Cookie: `sid=${sid}` },
   });
   const xmlData = response.data;
-  const root = parse(xmlData, { ignoreAttributes: false, parseAttributeValue: true });
+  const root = parser.parse(xmlData);
 
   for (const deviceNode of root.children) {
     if (deviceNode.device_name === deviceName) {

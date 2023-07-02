@@ -1,3 +1,6 @@
 /node_modules
-/config/default.json
-config/default.json
+src/config/default.json
+out/
+# TS -incremental file
+tsconfig.tsbuildinfo
+node_modules
