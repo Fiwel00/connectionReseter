@@ -16,6 +16,9 @@ async function main() {
   const deviceName = 'placeholder';
 
 
+  resolve("2$10000$5A1711$2000$5A1722", "1example!");
+
+
   const options = {
     username: username,
     password: password,
@@ -24,9 +27,10 @@ async function main() {
 
   
     const calls = await fritz.getCalls(options);
-    if (calls.error) return console.log('Error: ' + calls.error.message);
+    if (calls.error) console.log('Error: ' + calls.error.message);
     console.log('Got ' + calls.length + 'calls.');
   
+
   // Step 1: Authenticate and retrieve session ID
   // const sid = await getSessionId(username, password, loginUrl);
 
@@ -51,7 +55,6 @@ async function getSessionId(username, password, loginUrl){
   if (sidNode == 0) {
     const challenge = root.SessionInfo.Challenge;
 
-    resolve();
 
     const challengeResponse = crypto.MD5(`${challenge}-${password}`).toString();
     const challengeUrl = `${loginUrl}?username=${username}&response=${challengeResponse}`;

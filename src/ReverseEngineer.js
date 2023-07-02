@@ -1,6 +1,5 @@
 import pbkdf2Hmac from 'pbkdf2-hmac';
-import config from 'config';
-export async function resolve(challenge) {
+export async function resolve(challenge, password) {
     
     return challengeResolve(challenge, password).then((hashResponse) => {
         console.log(hashResponse)
@@ -11,39 +10,43 @@ export async function resolve(challenge) {
 function challengeResolve(r, t) {
 return new Promise(
     (
-    function (n, e) {
-        var f,
+    function (buildResponse, throwError) {
+      let f,
         h,
-        c = function (r) {
-        var n = r.trim().split('$'),
-        e = n[0],
-        a = n[1],
-        i = n[2],
-        u = n[3],
-        f = n[4];
-        if ('2' !== e) throw new Error('Challenge has an unsupported version');
-        var h = l(a),
-        c = l(u);
-        if (!i || !f) throw new Error('Missing salts');
-        return {
-            salt1: s(i),
-            salt2: s(f),
-            iterations1: h,
-            iterations2: c
-        }
+        parsedChallenge = function (challengeRaw) {
+          const challenge = challengeRaw.trim().split('$'),
+          prefix = challenge[0],
+          iteration1 = challenge[1],
+          salt1 = challenge[2],
+          iteration2 = challenge[3],
+          salt2 = challenge[4];
+          if ('2' !== prefix) {
+            throw new Error('Challenge has an unsupported version');
+          }
+          const iteration1Int = parseIteration(iteration1);
+          const iteration2Int = parseIteration(iteration2);
+          if (!salt1 || !salt2) {
+            throw new Error('Missing salts');
+          } 
+          return {
+              salt1: s(salt1),
+              salt2: s(salt2),
+              iterations1: iteration1Int,
+              iterations2: iteration2Int
+          }
         }(r),
         p = u(t);
         try {
-            f = (0, pbkdf2) (p, c.salt1, c.iterations1, 32)
+            f = (0, pbkdf2) (p, parsedChallenge.salt1, parsedChallenge.iterations1, 32)
         } catch (r) {
-            e(new Error('First pass failed: ' + r.message))
+            throwError(new Error('First pass failed: ' + r.message))
         }
         try {
-            h = (0, pbkdf2) (f, c.salt2, c.iterations2, 32)
+            h = (0, pbkdf2) (f, parsedChallenge.salt2, parsedChallenge.iterations2, 32)
         } catch (r) {
-            e(new Error('Second pass failed: ' + r.message))
+            throwError(new Error('Second pass failed: ' + r.message))
         }
-        n(''.concat(i(c.salt2), '$').concat(i(h)))
+        buildResponse(''.concat(i(parsedChallenge.salt2), '$').concat(i(h)))
     }
     )
 )
@@ -56,7 +59,7 @@ function i(r) {
     })).join('')
   }
 
-function l(r) {
+function parseIteration(r) {
     if (!r || !r.match(/^\d+$/)) throw new Error('Number of iterations is empty or invalid');
     var t;
     try {
