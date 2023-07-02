@@ -7,59 +7,61 @@ export async function resolve(challenge, password) {
     })
 }
 
-function challengeResolve(r, t) {
+function challengeResolve(challengeRaw, passwordRaw) {
 return new Promise(
-    (
-    function (buildResponse, throwError) {
-      let f,
-        h,
-        parsedChallenge = function (challengeRaw) {
-          const challenge = challengeRaw.trim().split('$'),
-          prefix = challenge[0],
-          iteration1 = challenge[1],
-          salt1 = challenge[2],
-          iteration2 = challenge[3],
-          salt2 = challenge[4];
-          if ('2' !== prefix) {
-            throw new Error('Challenge has an unsupported version');
-          }
-          const iteration1Int = parseIteration(iteration1);
-          const iteration2Int = parseIteration(iteration2);
-          if (!salt1 || !salt2) {
-            throw new Error('Missing salts');
-          } 
-          return {
-              salt1: s(salt1),
-              salt2: s(salt2),
-              iterations1: iteration1Int,
-              iterations2: iteration2Int
-          }
-        }(r),
-        p = u(t);
+    (function (buildResponse, throwError) {
+      let hash1,
+        hash2,
+        parsedChallenge = parseChallenge(challengeRaw),
+        password = encodeUTF8(passwordRaw);
         try {
-            f = (0, pbkdf2) (p, parsedChallenge.salt1, parsedChallenge.iterations1, 32)
-        } catch (r) {
-            throwError(new Error('First pass failed: ' + r.message))
+            hash1 = pbkdf2 (password, parsedChallenge.salt1, parsedChallenge.iterations1, 32)
+        } catch (exception) {
+            throwError(new Error('First pass failed: ' + exception.message))
         }
         try {
-            h = (0, pbkdf2) (f, parsedChallenge.salt2, parsedChallenge.iterations2, 32)
-        } catch (r) {
-            throwError(new Error('Second pass failed: ' + r.message))
+            hash2 = pbkdf2 (hash1, parsedChallenge.salt2, parsedChallenge.iterations2, 32)
+        } catch (exception) {
+            throwError(new Error('Second pass failed: ' + exception.message))
         }
-        buildResponse(''.concat(i(parsedChallenge.salt2), '$').concat(i(h)))
-    }
-    )
+        buildResponse(''.concat(ArrayBufferToHex(parsedChallenge.salt2), '$').concat(ArrayBufferToHex(hash2)))
+    })
 )
 }
 
-function i(r) {
-    var t = new Uint8Array(r);
-    return Array.from(t, (function (r) {
+function parseChallenge(challengeRaw) {
+  return function (challengeRaw) {
+    const challenge = challengeRaw.trim().split('$');
+    const prefix = challenge[0]
+    const iteration1 = challenge[1]
+    const hexSalt1 = challenge[2]
+    const iteration2 = challenge[3]
+    const hexSalt2 = challenge[4];
+    if ('2' !== prefix) {
+      throw new Error('Challenge has an unsupported version');
+    }
+    const iteration1Int = parseIterationToInt(iteration1);
+    const iteration2Int = parseIterationToInt(iteration2);
+    if (!hexSalt1 || !hexSalt2) {
+      throw new Error('Missing salts');
+    }
+    return {
+      salt1: parseHexSaltToIntArray(hexSalt1),
+      salt2: parseHexSaltToIntArray(hexSalt2),
+      iterations1: iteration1Int,
+      iterations2: iteration2Int
+    };
+  } (challengeRaw);
+}
+
+function ArrayBufferToHex(arrayBuffer) {
+    const utf8ArrayBuffer = new Uint8Array(arrayBuffer);
+    return Array.from(utf8ArrayBuffer, (function (r) {
       return ('0' + r.toString(16)).slice( - 2)
     })).join('')
   }
 
-function parseIteration(r) {
+function parseIterationToInt(r) {
     if (!r || !r.match(/^\d+$/)) throw new Error('Number of iterations is empty or invalid');
     var t;
     try {
@@ -70,10 +72,10 @@ function parseIteration(r) {
     if (t <= 0) throw new Error('Number of iterations has to be greater than 0');
     return t
 }
-function u(r) {
-    return new TextEncoder('utf-8').encode(r)
+function encodeUTF8(r) {
+    return new TextEncoder().encode(r)
 }
-function s(r) {
+function parseHexSaltToIntArray(r) {
     if (r.length % 2 != 0) throw new Error('String has an invalid length for a hex string');
     for (var t = [], n = 0; n < r.length; n += 2) {
         var e = void 0;
@@ -88,37 +90,36 @@ function s(r) {
 }
 
 
-function pbkdf2 (t, e, r, n) {
-    for (
-      var i = new o(t),
+function pbkdf2 (password, salt, iteration, length) {
+  var i = new o(password),
       a = i.digestLength,
       s = new Uint8Array(4),
       c = new Uint8Array(a),
       u = new Uint8Array(a),
-      f = new Uint8Array(n),
-      l = 0;
-      l * a < n;
-      l++
+      f = new Uint8Array(length)
+    for (var index = 0;
+      index * a < length;
+      index++
     ) {
-      var p = l + 1;
+      var p = index + 1;
       s[0] = p >>> 24 & 255,
       s[1] = p >>> 16 & 255,
       s[2] = p >>> 8 & 255,
       s[3] = p >>> 0 & 255,
       i.reset(),
-      i.update(e),
+      i.update(salt),
       i.update(s),
       i.finish(u);
       for (var d = 0; d < a; d++) c[d] = u[d];
-      for (d = 2; d <= r; d++) {
+      for (d = 2; d <= iteration; d++) {
         i.reset(),
         i.update(u).finish(u);
         for (var v = 0; v < a; v++) c[v] ^= u[v]
       }
-      for (d = 0; d < a && l * a + d < n; d++) f[l * a + d] = c[d]
+      for (d = 0; d < a && index * a + d < length; d++) f[index * a + d] = c[d]
     }
-    for (l = 0; l < a; l++) c[l] = u[l] = 0;
-    for (l = 0; l < 4; l++) s[l] = 0;
+    for (index = 0; index < a; index++) c[index] = u[index] = 0;
+    for (index = 0; index < 4; index++) s[index] = 0;
     return i.clean(),
     f
 }
